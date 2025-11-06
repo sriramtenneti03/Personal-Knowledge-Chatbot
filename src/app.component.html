@@ -1,0 +1,109 @@
+<main class="bg-slate-900 text-slate-200 min-h-screen font-sans flex flex-col items-center p-4 sm:p-6 md:p-8">
+  <div class="w-full max-w-3xl mx-auto">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-extrabold text-white tracking-tight">
+        Personal Knowledge <span class="text-sky-400">Chatbot</span>
+      </h1>
+      <p class="mt-2 text-slate-400">Ask questions about your own documents.</p>
+    </header>
+
+    <!-- Ingestion Section -->
+    <section class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-slate-700 w-full mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold text-sky-400 flex items-center gap-3">
+          <span class="bg-sky-500/10 text-sky-400 text-sm font-bold rounded-full h-8 w-8 flex items-center justify-center">1</span>
+          Load Knowledge Base
+        </h2>
+        <button (click)="clearKnowledgeBase()" title="Clear all ingested documents"
+                class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 font-semibold py-1 px-3 rounded-md transition-colors duration-200">
+          Clear
+        </button>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row items-center gap-4">
+        <label for="file-upload" class="relative cursor-pointer bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 w-full sm:w-auto text-center">
+          <span>Select Document(s)</span>
+          <input #fileUpload id="file-upload" name="file-upload" type="file" class="sr-only" 
+                 accept=".zip,.pdf,.md,.txt,.doc,.docx,.ppt,.pptx" (change)="onFileSelected($event)">
+        </label>
+
+        <button (click)="uploadAndIngest()" [disabled]="!selectedFile() || isIngesting()" 
+                class="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 w-full sm:w-auto flex-shrink-0">
+          @if (isIngesting()) {
+            <span>Processing...</span>
+          } @else {
+            <span>Upload & Ingest</span>
+          }
+        </button>
+      </div>
+      
+      <p class="mt-4 text-sm h-5" [class]="ingestionStatusClass()">{{ ingestionStatus() }}</p>
+    </section>
+
+    <!-- Chat Section -->
+    <section class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-slate-700 w-full flex flex-col" style="height: 60vh;">
+      <h2 class="text-2xl font-bold text-sky-400 mb-4 flex items-center gap-3">
+        <span class="bg-sky-500/10 text-sky-400 text-sm font-bold rounded-full h-8 w-8 flex items-center justify-center">2</span>
+        Chat
+      </h2>
+      
+      <div #chatContainer class="flex-grow overflow-y-auto mb-4 p-4 bg-slate-900/50 rounded-lg space-y-6">
+        @for (message of chatHistory(); track $index) {
+          @if (message.role === 'bot' || message.role === 'error') {
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="12" width="16" height="8" rx="2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+              </div>
+              <div class="bg-slate-700 p-4 rounded-lg max-w-prose" [class.border-red-500/50]="message.role === 'error'" [class.border]="message.role === 'error'">
+                <p class="whitespace-pre-wrap text-slate-200">{{ message.content }}</p>
+                @if (message.citations && message.citations.length > 0) {
+                  <div class="mt-4 border-t border-slate-600 pt-3">
+                    <h4 class="font-bold text-slate-300 mb-2 text-sm">Citations:</h4>
+                    <div class="space-y-2">
+                    @for(citation of message.citations; track citation.source) {
+                      <div class="p-2 bg-slate-800/50 rounded text-xs text-slate-400 transition-colors hover:bg-slate-800">
+                        <p class="font-semibold text-slate-300 truncate"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> {{ citation.source }}</p>
+                        <p class="mt-1 italic line-clamp-2">"...{{ citation.preview }}..."</p>
+                      </div>
+                    }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+          @if (message.role === 'user') {
+            <div class="flex items-start gap-3 justify-end">
+              <div class="bg-sky-600 text-white p-4 rounded-lg max-w-prose">
+                 <p class="whitespace-pre-wrap">{{ message.content }}</p>
+              </div>
+              <div class="flex-shrink-0 h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+            </div>
+          }
+        }
+        @if (isBotTyping()) {
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="12" width="16" height="8" rx="2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+            </div>
+            <div class="bg-slate-700 p-4 rounded-lg">
+              <app-typing-indicator></app-typing-indicator>
+            </div>
+          </div>
+        }
+      </div>
+
+      <form class="flex gap-2" (submit)="$event.preventDefault(); sendMessage(questionInput)">
+        <input #questionInput type="text" placeholder="Ask about your docs..." [disabled]="!docsIngested() || isBotTyping()"
+               class="flex-grow bg-slate-700 disabled:bg-slate-800 disabled:cursor-not-allowed border border-slate-600 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors">
+        <button type="submit" [disabled]="!docsIngested() || isBotTyping()"
+                class="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold p-3 rounded-lg flex items-center justify-center transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </form>
+    </section>
+
+  </div>
+</main>

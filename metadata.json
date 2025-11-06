@@ -1,0 +1,5 @@
+{
+  "name": "Personal Knowledge Chatbot",
+  "description": "Upload a folder of your documents (as a ZIP file containing PDFs, MD, or TXT files) and ask natural-language questions. The app uses a RAG pipeline to provide answers with citations from your content.",
+  "requestFramePermissions": []
+}
